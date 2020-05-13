@@ -1,0 +1,1 @@
+Cartella con una serie di QUERY di test usate per l'analisi di viste e tabelle di Oracle Spatial
