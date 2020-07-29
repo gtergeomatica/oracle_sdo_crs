@@ -30,7 +30,14 @@ sudo yum install gdal
 Su windows la strada più semplice è tramite l'OsGeo4W Installer di QGIS che consente anche di installare e aggiornare le varie versioni di QGIS (si veda a tal proposito la nostra guida https://install-qgis-windows-dummies.readthedocs.io/en/latest/)
 
 
-A quel punto il comando ogr2ogr è contenuto nella cartella `C:\OSGeo4W64\bin`
+A quel punto il comando ogr2ogr è contenuto nella cartella `C:\OSGeo4W64\bin` e si può usare:
 
+- dalla powershell di Windows (Windows PowerShell ISE)
+
+![wp](/img/windows_powershell.PNG)
+
+- dalla OsGeo4W Shell 
+
+![wp](/img/osgeo_shell.PNG)
 
 
