@@ -53,5 +53,51 @@ ogr2ogr -f "OCI" -overwrite  -nln NOME_TABELLA_ORACLE -lco GEOMETRY_NAME=GEOMETR
 es (nel caso di istanza oracle ). 
 
 ```
-ogr2ogr -f "OCI" -overwrite  -nln TEST_IMPORT_SONDAGGI -lco GEOMETRY_NAME=GEOMETRY -nlt POINT -lco SRID=7791 -unsetFieldWidth oci:XXXXXX/XXXXX@//vm-oraprod-linux2/georef11.**dominio**:TEST_IMPORT_SONDAGGI C:\Users\assis\Downloads\per_roberto\SondaggiGEO_U00-32.shp
+ogr2ogr -f "OCI" -overwrite  -nln TEST_IMPORT_SONDAGGI -lco GEOMETRY_NAME=GEOMETRY -nlt POINT -lco SRID=7791 -unsetFieldWidth oci:XXXXXX/XXXXX@//vm-oraprod-linux2/georef11.dominio:TEST_IMPORT_SONDAGGI C:\Users\assis\Downloads\per_roberto\SondaggiGEO_U00-32.shp
 ```
+
+dove
+- `-f "OCI"`: formato di importazione Oracle
+- `-lco OVERWRITE=YES`: per forzare la sovrascrittura del dato importato
+- `-nln NOME_TABELLA_ORACLE`: per definire il nome della tabella oracle
+- `-lco GEOMETRY_NAME=GEOMETRY`: specifico il nome del campo geometria
+- `-lco SRID=7791` : precisa il SRID che deve avere la tabella in Oracle (il SRID deve essere presente sul DB)
+- `-lco PRECISION=NO` o in alternativa `-unsetFieldWidth`: molto comodo per prevenire eventuali errori dovuto alle precisioni dei campi numerici
+- `-nlt POINT` : **opzione fondamentale** gestisce il corretto import dei dati di partenza a livello geomtrico
+- `-unsetFieldWidth`: molto comodo per prevenire eventuali errori dovuto alle precisioni dei campi numerici
+- `oci:USER/PWD$@//INDIRIZZO_ISTANZA _ORACLE:NOME_TABELLA_ORACLE`: utente:password@indirizzo_istanza:nome_tabella
+- percorso allo shapefile
+
+A questo link l'elenco completo delle Layer Creation Option disponibili per Oracle https://gdal.org/drivers/vector/oci.html per esempio altre istruzioni comode potrebbero essere: 
+- `-lco TRUNCATE=YES` per mantenere eventuali indici o vincoli già esistenti o anche modifiche al tipo di campo (es. conversioni di float/integer o altro)
+- `-lco SPATIAL_INDEX=NO` per evitare che venga creato uno spatial index di default
+
+**NOTA BENE 1 - Password con $**
+
+Nel caso in cui si usino delle password con il carattere `$` la powershell di windows (non serve questa nota nel caso in cui si usi la OsGeo4W Shell) interpreta quel campo come una variabile per cui non riconosce il comando correttamente. A quel punto è suffiente:
+
+1) definire una variabile 
+
+```
+$pwd='password_con_$'
+```
+
+2) richiamare la variabile nella stringa 
+
+es. `oci:USER/$pwd$@//INDIRIZZO_ISTANZA _ORACLE:NOME_TABELLA_ORACLE`: 
+
+
+**NOTA BENE 2 - Errori al primo import**
+
+Qualora la tabella non sia già presente in oracle alla prima importazione vengono fuori i seguenti messaggi di errore che però **non sono preoccupanti**. Semplicemente segnalano che non la tabella che si sta importando non esiste nei metadati di Oracle `OCIDescribeAny`
+
+```
+ERROR 1: ORA-04043: object NOME_TABELLA_ORACLE does not exist
+ in OCIDescribeAny
+ERROR 1: ORA-04043: object NOME_TABELLA_ORACLE does not exist
+ in OCIDescribeAny
+ERROR 1: ORA-04043: object "NOME_TABELLA_ORACLE" does not exist
+ in OCIDescribeAny
+ERROR 1: ORA-04043: object "NOME_TABELLA_ORACLE" does not exist
+ in OCIDescribeAny
+ ```
