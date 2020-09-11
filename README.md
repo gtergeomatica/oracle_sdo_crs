@@ -114,8 +114,19 @@ Per fruire dello script su sistemi Windows si suggerisce:
 
 2) aprire la OSGeo4W shell 
 
-3)digitare `py3_env` questo dovrebbe stampare i percorsi dell'installazione QGIS
+3) digitare `py3_env` questo dovrebbe stampare i percorsi dell'installazione QGIS
 
 4) digitare `python -m pip install cx_Oracle` (da testare ma forse occorre avere i privilegi di installare qualcosa nella cartella C:\OSGeo4W64)
 
 A quel punto lo script dovrebbe funzionare direttamente dalla console python di QGIS
+
+Lo script necessita di un file conn.py con le credenziali di accesso:
+
+```
+# credenziali di accesso al DB
+user='XXXXXX'
+pwd='XXXXXXX'
+host='XXXXX'
+service='XXXXX.dominio.it'
+
+```
