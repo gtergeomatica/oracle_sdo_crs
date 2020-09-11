@@ -60,10 +60,10 @@ dove
 - `-f "OCI"`: formato di importazione Oracle
 - `-lco OVERWRITE=YES`: per forzare la sovrascrittura del dato importato
 - `-nln NOME_TABELLA_ORACLE`: per definire il nome della tabella oracle
-- `-lco GEOMETRY_NAME=GEOMETRY`: specifico il nome del campo geometria
+- `-lco GEOMETRY_NAME=NOME_COLONNA_GEMETRIA`: specifico il nome del campo geometria
 - `-lco SRID=7791` : precisa il SRID che deve avere la tabella in Oracle (il SRID deve essere presente sul DB)
 - `-lco PRECISION=NO` o in alternativa `-unsetFieldWidth`: molto comodo per prevenire eventuali errori dovuto alle precisioni dei campi numerici
-- `-nlt POINT` : **opzione fondamentale** gestisce il corretto import dei dati di partenza a livello geomtrico
+- `-nlt GEOMETRY_TYPE` : **opzione fondamentale** gestisce il corretto import dei dati di partenza a livello geometrico (ad esempio `-nlt POINT`)
 - `-unsetFieldWidth`: molto comodo per prevenire eventuali errori dovuto alle precisioni dei campi numerici
 - `oci:USER/PWD$@//INDIRIZZO_ISTANZA _ORACLE:NOME_TABELLA_ORACLE`: utente:password@indirizzo_istanza:nome_tabella
 - percorso allo shapefile
@@ -101,3 +101,21 @@ ERROR 1: ORA-04043: object "NOME_TABELLA_ORACLE" does not exist
 ERROR 1: ORA-04043: object "NOME_TABELLA_ORACLE" does not exist
  in OCIDescribeAny
  ```
+
+
+Script python
+-----------------------------------------------------------------------
+
+Lo script python realizzato ha lo scopo di convertire, servendosi di ogr2ogr le tabelle di oracle nel sistema di riferimento Roma40 Monte Mario - Gauss Boaga Fuso Ovest (EPSG 3003) nel nuovo sistema di coordinate ufficiale italiano RDN2008 - UTM32N (EPSG 7791) servendosi dei grigliati IGM in formato NTv2
+
+Per fruire dello script su sistemi Windows si suggerisce:
+
+1) avere QGIS installato da OsGeo4W Installer (si vedano queste istruzioni nel caso https://install-qgis-windows-dummies.readthedocs.io/it/latest/)
+
+2) aprire la OSGeo4W shell 
+
+3)digitare `py3_env` questo dovrebbe stampare i percorsi dell'installazione QGIS
+
+4) digitare `python -m pip install cx_Oracle` (da testare ma forse occorre avere i privilegi di installare qualcosa nella cartella C:\OSGeo4W64)
+
+A quel punto lo script dovrebbe funzionare direttamente dalla console python di QGIS
