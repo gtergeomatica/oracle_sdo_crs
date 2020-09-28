@@ -43,6 +43,8 @@ for result in cur:
     #print("{}, {}, {}, {},{}, {}".format(result[0], result[1], result[2], result[3],result[4], result[5]))
     i+=1
 
+
+#cerco le tabelle con CRS Roma40 - GB F. Ovest dell'utente in questione
 query='SELECT * FROM mdsys.USER_SDO_GEOM_METADATA WHERE (srid = 3003 OR srid=82087) --AND TABLE_NAME=\'TEST_PUNTI_3003\''
 #print(query)
 cur.execute(query)
@@ -71,6 +73,7 @@ for result in cur:
             print('Tipo: {}'.format(tipo))
     except:
         check_table=1
+    cur2.close
     if check_table==0:
         comando='{0}\\bin\\ogr2ogr.exe -f "OCI" -overwrite '\
             '-s_srs "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl '\
@@ -82,4 +85,25 @@ for result in cur:
         print(comando)
         ret=os.system(comando)
         print(ret)
+        query_viste='select a.owner, a.name, b.text from all_dependencies a ' \
+            'join all_views b on a.owner=b.owner and a.name=b.view_name ' \
+             'where a.type=\'VIEW\'  and upper(a.referenced_name) like upper(\'%{}%\')' \
+             ' and a.referenced_type = \'TABLE\''.format(table_name)
+                #select OWNER, VIEW_NAME, TEXT FROM all_VIEWS where contains(TEXT, '{}', 1) > 0'".format(table_name)
+        print(query_viste)
+        cur3 = con.cursor()
+        cur3.execute(query_viste)
+        for result3 in cur3:
+            owner=result3[0]
+            view_name=result3[1]
+            text=result3[2]
+            new_table_name = '{}_7791'.format(table_name)
+            print(table_name)
+            print(new_table_name)
+            nuova_vista='create or replace view {}.{} as {}'.format(owner,view_name,re.sub(table_name,new_table_name,text,flags=re.I))
+            print(nuova_vista)
+            cur4=con.cursor()
+            cur4.execute(nuova_vista)
+            cur4.close
+        cur3.close
     i+=1
