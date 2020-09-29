@@ -112,11 +112,13 @@ Per fruire dello script su sistemi Windows si suggerisce:
 
 1) avere QGIS installato da OsGeo4W Installer (si vedano queste istruzioni nel caso https://install-qgis-windows-dummies.readthedocs.io/it/latest/)
 
-2) aprire la OSGeo4W shell 
+2) copiare il file con i grigliatiin formato NTv2 XXXX_**R40_F00.gsb** ed eventualmente gli altri file .gsb nella cartella C:\\OSGeo4W64\\share\\proj
 
-3) digitare `py3_env` questo dovrebbe stampare i percorsi dell'installazione QGIS
+3) aprire la OSGeo4W shell 
 
-4) digitare `python -m pip install cx_Oracle` (da testare ma forse occorre avere i privilegi di installare qualcosa nella cartella C:\OSGeo4W64)
+4) digitare `py3_env` questo dovrebbe stampare i percorsi dell'installazione QGIS
+
+5) digitare `python -m pip install cx_Oracle` (da testare ma forse occorre avere i privilegi di installare qualcosa nella cartella C:\OSGeo4W64)
 
 A quel punto lo script dovrebbe funzionare direttamente dalla console python di QGIS
 
