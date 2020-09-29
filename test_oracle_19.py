@@ -6,7 +6,7 @@ import conn
 import cx_Oracle
 # per girare fuori da QGIS
 cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
-# per girare fuori da QGIS
+# per girare dentro QGIS
 #cx_Oracle.init_oracle_client()
 
 
@@ -20,6 +20,8 @@ con = cx_Oracle.connect(parametri_con)
 #con = cx_Oracle.connect('PC_EMERGENZE/$Allerta45$@TEST')
 print(con.version)
 
+
+#verifica di tutte le tabelle spaziali presenti sul DB e conteggio delle tabelle suddivise per diverso CRS 
 cur = con.cursor()
 #tutte le tabelle geometriche
 cur.execute('SELECT count(table_name), srid FROM mdsys.ALL_SDO_GEOM_METADATA group by srid ')
@@ -33,15 +35,16 @@ for result in cur:
 
 #quit()   
 #tutte le tabelle geometriche
-cur.execute('SELECT * FROM mdsys.ALL_SDO_GEOM_METADATA where srid = 32632')
+#cur.execute('SELECT * FROM mdsys.ALL_SDO_GEOM_METADATA where srid = 32632')
 #cur.execute('select * from all_tables')
-i=0
-for result in cur:
-    print(i,len(result))
+#i=0
+#for result in cur:
+#    print(i,len(result))
     #print("{}, {}, {}, {}".format(result[0], result[1], result[2], result[3]))
-    print("{}, {}, {}, {},{}".format(result[0], result[1], result[2], result[3],result[4]))
+#    print("{}, {}, {}, {},{}".format(result[0], result[1], result[2], result[3],result[4]))
     #print("{}, {}, {}, {},{}, {}".format(result[0], result[1], result[2], result[3],result[4], result[5]))
-    i+=1
+#    i+=1
+
 
 
 #cerco le tabelle con CRS Roma40 - GB F. Ovest dell'utente in questione
