@@ -116,7 +116,7 @@ Per fruire dello script su sistemi Windows si suggerisce:
 
 3) aprire la OSGeo4W shell 
 
-4) digitare `py3_env` questo dovrebbe stampare i percorsi dell'installazione QGIS
+4) digitare `py3_env` che dovrebbe stampare i percorsi dell'installazione python con QGIS e abilitare python sulla shell OsGeo
 
 5) digitare `python -m pip install cx_Oracle` (da testare ma forse occorre avere i privilegi di installare qualcosa nella cartella C:\OSGeo4W64)
 
