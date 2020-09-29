@@ -1,13 +1,18 @@
+#!/usr/bin/env python
+# coding=utf-8
 # Copyleft Roberto Marzocchi - Gter srl Innovazione in Geomatica Gnss e Gis
 import os,sys,shutil,re,glob, getopt
-
-#apro connessione Oracle
-import conn
 import cx_Oracle
-# per girare fuori da QGIS
-cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
-# per girare dentro QGIS
-#cx_Oracle.init_oracle_client()
+
+
+#da toglere commento e modificare su QGIS
+#sys.path.insert(0, r'C:\Users\assis\Documents\GitHub\oracle_sdo_crs')
+from credenziali import *
+print('test')
+# decommentare e modificare la seguente riga per lanciare lo script fuori da QGIS
+#cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
+# decommentare e modificare la seguente riga per lanciare lo script da QGIS
+cx_Oracle.init_oracle_client()
 
 
 
@@ -15,7 +20,7 @@ cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
 qgis_path="C:\OSGeo4W64"
 
 # con = cx_Oracle.connect('GPE/gpeowner@192.168.1.87/xe')
-parametri_con='{}/{}@//{}/{}'.format(conn.user,conn.pwd,conn.host,conn.service)
+parametri_con='{}/{}@//{}/{}'.format(user,pwd,host,service)
 con = cx_Oracle.connect(parametri_con)
 #con = cx_Oracle.connect('PC_EMERGENZE/$Allerta45$@TEST')
 print(con.version)

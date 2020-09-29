@@ -108,7 +108,7 @@ Script python
 
 Lo script python realizzato ha lo scopo di convertire, servendosi di ogr2ogr le tabelle di oracle nel sistema di riferimento Roma40 Monte Mario - Gauss Boaga Fuso Ovest (EPSG 3003) nel nuovo sistema di coordinate ufficiale italiano RDN2008 - UTM32N (EPSG 7791) servendosi dei grigliati IGM in formato NTv2
 
-Per fruire dello script su sistemi Windows si suggerisce:
+Per fruire dello script su sistemi Windows si suggerisce di eseguire le seguenti operazioni preliminari:
 
 1) avere QGIS installato da OsGeo4W Installer (si vedano queste istruzioni nel caso https://install-qgis-windows-dummies.readthedocs.io/it/latest/)
 
@@ -122,7 +122,11 @@ Per fruire dello script su sistemi Windows si suggerisce:
 
 A quel punto lo script dovrebbe funzionare direttamente dalla console python di QGIS
 
-Lo script necessita di un file conn.py con le credenziali di accesso:
+1) scaricare la presente cartella con il tasto in alto a destra 
+
+![wp](/img/download.PNG)
+
+2) scompattare la cartella e aggiungere file *credenziali.py* con le credenziali di accesso al DB oracle:
 
 ```
 # credenziali di accesso al DB
@@ -131,4 +135,17 @@ pwd='XXXXXXX'
 host='XXXXX'
 service='XXXXX.dominio.it'
 
+```
+
+3) nel file principale denominato **conversione_oracle19.py** controllare le seguenti righe:
+
+```
+#da toglere commento e modificare su QGIS
+#sys.path.insert(0, r'C:\Users\assis\Documents\GitHub\oracle_sdo_crs')
+from credenziali import *
+print('test')
+# decommentare e modificare la seguente riga per lanciare lo script fuori da QGIS
+#cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
+# decommentare e modificare la seguente riga per lanciare lo script da QGIS
+cx_Oracle.init_oracle_client()
 ```
