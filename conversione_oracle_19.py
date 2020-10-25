@@ -7,9 +7,13 @@ import cx_Oracle
 #libreria per gestione log
 import logging
 
+
+spath=os.path.dirname(os.path.realpath(__file__))
+#exit()
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
-    #filename='log/path3d.log',
+    filemode ='w',
+    #filename='{}/log/conversione_oracle_19.log'.format(spath),
     level=logging.DEBUG)
 
 
@@ -121,16 +125,48 @@ for result in cur:
         logging.warning('{}'.format(e))
     cur2.close
     if check_table==0:
-        #crero il comando 
-        comando='{0}\\bin\\ogr2ogr.exe -f "OCI" -overwrite '\
-            '-s_srs "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl '\
-            '+nadgrids={0}\\share\\proj\\44080835_44400922_R40_F00.gsb +units=m +no_defs" '\
-            '-t_srs EPSG:7791 -nln {1}_7791  -lco GEOMETRY_NAME={2} '\
-            '-nlt {3} -lco SRID=7791 -unsetFieldWidth '\
-            'oci:{4}:{1}_7791 '\
-            'oci:{4}:{1}'.format(qgis_path,table_name,column_name,tipo,parametri_con)
-        logging.debug(comando)
-        ret=os.system(comando)
+        #crero il comando
+        new_table_name = '{}_7791'.format(table_name)
+        if len(new_table_name)>30:
+            comando='{0}\\bin\\ogr2ogr.exe -f "OCI" -overwrite '\
+                '-s_srs "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl '\
+                '+nadgrids={0}\\share\\proj\\44080835_44400922_R40_F00.gsb +units=m +no_defs" '\
+                '-t_srs EPSG:7791 -nln AAAAABBBB  -lco GEOMETRY_NAME={2} '\
+                '-nlt {3} -lco SRID=7791 -unsetFieldWidth '\
+                'oci:{4}:{1}_7791 '\
+                'oci:{4}:{1}'.format(qgis_path,table_name,column_name,tipo,parametri_con)
+            logging.debug(comando)
+            ret=os.system(comando)
+            #rinomino la tabella con il nome giusto (problema con ogr2ogr nln per nomi maggiori di 30 char)
+            cur_a = con.cursor()
+            rename=''' ALTER TABLE {}."AAAAABBBB" RENAME TO "{}_7791" '''.format(user,table_name)
+            logging.debug(rename)
+            cur_a.execute(rename)
+            cur_a.close()
+            cur_a = con.cursor()
+            metadati= ''' INSERT INTO user_sdo_geom_metadata 
+                    using SELECT '{0}_7791', column_name, diminfo, srid 
+                    FROM all_sdo_geom_metadata WHERE owner = '{1}' and table_name = 'AAAAABBBB' '''.format(table_name,user)
+            logging.debug(metadati)
+            cur_a.execute(metadati)
+            cur_a.close()
+            cur_a = con.cursor()
+            drop_metadati='''DELETE FROM USER_SDO_GEOM_METADATA WHERE table_name = 'AAAAABBBB' '''
+            logging.debug(drop_metadati)
+            logging.debug(drop_metadati)
+            cur_a.execute(drop_metadati)
+            con.commit()
+            cur_a.close()
+        else: 
+            comando='{0}\\bin\\ogr2ogr.exe -f "OCI" -overwrite '\
+                '-s_srs "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl '\
+                '+nadgrids={0}\\share\\proj\\44080835_44400922_R40_F00.gsb +units=m +no_defs" '\
+                '-t_srs EPSG:7791 -nln {1}_7791  -lco GEOMETRY_NAME={2} '\
+                '-nlt {3} -lco SRID=7791 -unsetFieldWidth '\
+                'oci:{4}:{1}_7791 '\
+                'oci:{4}:{1}'.format(qgis_path,table_name,column_name,tipo,parametri_con)
+            logging.debug(comando)
+            ret=os.system(comando)
         if ret!=0:
             logging.error('return= {} - Problem with ogr2ogr for table {}'.format(ret,table_name))
         else:
@@ -149,7 +185,7 @@ for result in cur:
             owner=result3[0]
             view_name=result3[1]
             text=result3[2]
-            new_table_name = '{}_7791'.format(table_name)
+            #new_table_name = '{}_7791'.format(table_name)
             logging.debug(table_name)
             logging.debug(new_table_name)
             nuova_vista='create or replace view {}.{} as {}'.format(owner,view_name,re.sub(table_name,new_table_name,text,flags=re.I))
@@ -181,7 +217,7 @@ for result in cur:
         #cerco le viste materializzate
         query_mviste='''SELECT a.owner, a.name, b.* 
             FROM all_dependencies a 
-            join all_views b on a.owner=b.owner and a.name=b.view_name
+            join all_mviews b on a.owner=b.owner and a.name=b.view_name
             WHERE upper(a.referenced_name) like upper(\'%{}%\')
             and a.referenced_type = \'TABLE\''''.format(table_name)
         logging.debug(query_mviste)
