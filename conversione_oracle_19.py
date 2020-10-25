@@ -4,35 +4,70 @@
 import os,sys,shutil,re,glob, getopt
 import cx_Oracle
 
+#libreria per gestione log
+import logging
+
+logging.basicConfig(
+    format='%(asctime)s\t%(levelname)s\t%(message)s',
+    #filename='log/path3d.log',
+    level=logging.DEBUG)
+
 
 #da toglere commento e modificare su QGIS
 #sys.path.insert(0, r'C:\Users\assis\Documents\GitHub\oracle_sdo_crs')
 from credenziali import *
-print('test')
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# PARTE UTILE PER LANCIARE LO SCRIPT DA QGIS o da python (es. VisualCode)
 # decommentare e modificare la seguente riga per lanciare lo script fuori da QGIS
-#cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
+cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
+
 # decommentare e modificare la seguente riga per lanciare lo script da QGIS
-cx_Oracle.init_oracle_client()
+#cx_Oracle.init_oracle_client()
 
-
-
-#installazione di QGIS
+#cartella dove è installato QGIS
 qgis_path="C:\OSGeo4W64"
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 
 # con = cx_Oracle.connect('GPE/gpeowner@192.168.1.87/xe')
 parametri_con='{}/{}@//{}/{}'.format(user,pwd,host,service)
 con = cx_Oracle.connect(parametri_con)
-#con = cx_Oracle.connect('PC_EMERGENZE/$Allerta45$@TEST')
-print(con.version)
+logging.info("Versione ORACLE: {}".format(con.version))
 
 
-#verifica di tutte le tabelle spaziali presenti sul DB e conteggio delle tabelle suddivise per diverso CRS 
+# STEP 0 - Pulizia USER_SDO_GEOM_METADATA
+query_metadata_orfani='''SELECT table_name FROM USER_SDO_GEOM_METADATA
+minus
+SELECT table_name FROM cat WHERE table_type IN('TABLE','VIEW') ORDER BY table_name'''
+cur0 = con.cursor()
+logging.debug(query_metadata_orfani)
+cur0.execute(query_metadata_orfani)
+for result in cur0:
+    subquery_delete='''DELETE FROM USER_SDO_GEOM_METADATA WHERE table_name = '{}' '''.format(result[0])
+    logging.debug(subquery_delete)
+    cur0bis = con.cursor()
+    try:
+        cur0bis.execute(subquery_delete)
+        con.commit()
+    except Exception as e:
+        logging.error(e)
+    cur0bis.close
+cur0.close
+
+
+
+
+# STEP 1 - Verifica di tutte le tabelle spaziali presenti sul DB e conteggio delle tabelle suddivise per diverso CRS 
 cur = con.cursor()
 #tutte le tabelle geometriche
-cur.execute('SELECT count(table_name), srid FROM mdsys.ALL_SDO_GEOM_METADATA group by srid ')
+query='SELECT count(table_name), srid FROM mdsys.ALL_SDO_GEOM_METADATA group by srid '
+logging.debug(query)
+cur.execute(query)
 #cur.execute('select * from all_tables')
 i=0
-print('i,  srid, count table')
+logging.debug('i,  srid, count table')
 for result in cur:
     print('{}, {}, {}'.format(i,result[1], result[0]))
     i+=1
@@ -52,9 +87,9 @@ for result in cur:
 
 
 
-#cerco le tabelle con CRS Roma40 - GB F. Ovest dell'utente in questione
-query='SELECT * FROM mdsys.USER_SDO_GEOM_METADATA WHERE (srid = 3003 OR srid=82087) --AND TABLE_NAME=\'TEST_PUNTI_3003\''
-#print(query)
+# Step 2 - Cerco le tabelle con CRS Roma40 - GB F. Ovest dell'utente in questione
+query='SELECT * FROM mdsys.USER_SDO_GEOM_METADATA WHERE (srid = 3003 OR srid=82087)'
+logging.debug(query)
 cur.execute(query)
 #cur.execute('select * from all_tables')
 i=0
@@ -64,25 +99,29 @@ n_type=[0,1,2,3,4,5,6,7]
 type=['UNKNOWN','POINT', 'LINESTRING', 'POLYGON', 'GEOMETRYCOLLECTION', 'MULTIPOINT', 'MULTILINESTRING','MULTIPOLYGON']
 
 for result in cur:
-    print(i,len(result))
+    logging.info('Passo {}'.format(i))
     table_name=result[0]
     column_name=result[1]
-    print("{}, {}, {}, {}".format(result[0], result[1], result[2], result[3]))
+    logging.debug("{}, {}, {}, {}".format(result[0], result[1], result[2], result[3]))
+    #cerco dimensione (2D, 3D o 4D) e tipologia di tabella geometrica
     subquery='SELECT a.{1}.Get_Dims(), a.{1}.Get_GType() FROM {0} a GROUP BY a.{1}.Get_Dims(), a.{1}.Get_GType()'.format(table_name,column_name)
+    logging.debug(subquery)
     check_table=0
     cur2 = con.cursor()
     try:
         cur2.execute(subquery)
         print(subquery)
         for result2 in cur2:
-            print('Dimensione = {}'.format(result2[0]))
+            logging.debug('Dimensione = {}'.format(result2[0]))
             ntipo=result2[1]
             tipo=type[ntipo]
-            print('Tipo: {}'.format(tipo))
-    except:
+            logging.debug('Tipo: {}'.format(tipo))
+    except Exception as e:
         check_table=1
+        logging.warning('{}'.format(e))
     cur2.close
     if check_table==0:
+        #crero il comando 
         comando='{0}\\bin\\ogr2ogr.exe -f "OCI" -overwrite '\
             '-s_srs "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl '\
             '+nadgrids={0}\\share\\proj\\44080835_44400922_R40_F00.gsb +units=m +no_defs" '\
@@ -90,15 +129,20 @@ for result in cur:
             '-nlt {3} -lco SRID=7791 -unsetFieldWidth '\
             'oci:{4}:{1}_7791 '\
             'oci:{4}:{1}'.format(qgis_path,table_name,column_name,tipo,parametri_con)
-        print(comando)
+        logging.debug(comando)
         ret=os.system(comando)
-        print(ret)
-        query_viste='select a.owner, a.name, b.text from all_dependencies a ' \
-            'join all_views b on a.owner=b.owner and a.name=b.view_name ' \
-             'where a.type=\'VIEW\'  and upper(a.referenced_name) like upper(\'%{}%\')' \
-             ' and a.referenced_type = \'TABLE\''.format(table_name)
-                #select OWNER, VIEW_NAME, TEXT FROM all_VIEWS where contains(TEXT, '{}', 1) > 0'".format(table_name)
-        print(query_viste)
+        if ret!=0:
+            logging.error('return= {} - Problem with ogr2ogr for table {}'.format(ret,table_name))
+        else:
+            logging.debug(ret)
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        #cerco le viste
+        query_viste='''SELECT a.owner, a.name, b.text FROM all_dependencies a 
+            join all_views b on a.owner=b.owner and a.name=b.view_name
+            WHERE a.type=\'VIEW\'  and upper(a.referenced_name) like upper(\'%{}%\')
+            and a.referenced_type = \'TABLE\''''.format(table_name)
+        #select OWNER, VIEW_NAME, TEXT FROM all_VIEWS where contains(TEXT, '{}', 1) > 0'".format(table_name)
+        logging.debug(query_viste)
         cur3 = con.cursor()
         cur3.execute(query_viste)
         for result3 in cur3:
@@ -106,12 +150,41 @@ for result in cur:
             view_name=result3[1]
             text=result3[2]
             new_table_name = '{}_7791'.format(table_name)
-            print(table_name)
-            print(new_table_name)
+            logging.debug(table_name)
+            logging.debug(new_table_name)
             nuova_vista='create or replace view {}.{} as {}'.format(owner,view_name,re.sub(table_name,new_table_name,text,flags=re.I))
-            print(nuova_vista)
+            logging.debug(nuova_vista)
             cur4=con.cursor()
             cur4.execute(nuova_vista)
             cur4.close
+            # elimino vecchi metadati
+            cur5=con.cursor()
+            delete_metadati='''DELETE FROM USER_SDO_GEOM_METADATA WHERE table_name = '{}' '''.format(view_name)
+            try:
+                cur5.execute(subquery_delete)
+                con.commit()
+            except Exception as e:
+                logging.warning('Problema nel rimuovere i metadati della vista {}. \n{}'.format(view_name, e))
+            cur5.close 
+            # ricreo i metadati della vista
+            metadati= ''' INSERT INTO user_sdo_geom_metadata 
+                using SELECT '{}', column_name, diminfo, srid 
+                FROM all_sdo_geom_metadata WHERE owner = '{}' and table_name = '{}' '''.format(view_name,user,new_table_name)
+            cur6=con.cursor()
+            try:
+                cur6.execute(metadati)
+            except Exception as m:
+                logging.error('Metadati della vista {} non creati. \n Errore: '.format(view_name, m))
+            cur6.close
         cur3.close
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        #cerco le viste materializzate
+        query_mviste='''SELECT a.owner, a.name, b.* 
+            FROM all_dependencies a 
+            join all_views b on a.owner=b.owner and a.name=b.view_name
+            WHERE upper(a.referenced_name) like upper(\'%{}%\')
+            and a.referenced_type = \'TABLE\''''.format(table_name)
+        logging.debug(query_mviste)
+        
+        
     i+=1
