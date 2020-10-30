@@ -149,3 +149,5 @@ print('test')
 # decommentare e modificare la seguente riga per lanciare lo script da QGIS
 cx_Oracle.init_oracle_client()
 ```
+
+4) per le fasi di debug abbiamo anche creato un file denominato **pulizia_oracle19.py** che riporta tutto allo stato iniziale

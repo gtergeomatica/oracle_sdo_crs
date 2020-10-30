@@ -77,7 +77,7 @@ if debug==1:
         except Exception as e:
             logging.error(e)
         cur1.close()
-        query3='DELETE TABLE {0}.{1}_7791'.format (user,table_original_name)
+        query3='DROP TABLE {0}.{1}_7791'.format (user,table_original_name)
         logging.debug(query3)
         cur1 = con.cursor()
         try:
@@ -91,13 +91,13 @@ if debug==1:
     # Aggiorno i metadati spaziali
     
     #step 1 - rimuovo i metadati per la tabella originale
-    metadati= ''' DELETE FROM USER_SDO_GEOM_METADATA WHERE table_name = '{}' '''.format(table_name)
+    metadati= ''' DELETE FROM USER_SDO_GEOM_METADATA WHERE table_name = '{}' '''.format(table_original_name)
     cur_m=con.cursor()
     try:
         cur_m.execute(metadati)
         logging.debug('Step 1 metadati OK: Metadati tabella originale rimossi')
     except Exception as m:
-        logging.warning('Metadati della tabella {} non rimossi. \n Errore: {}'.format(table_name, m))
+        logging.warning('Metadati della tabella {} non rimossi. \n Errore: {}'.format(table_original_name, m))
     cur_m.close()
     
     
@@ -105,13 +105,13 @@ if debug==1:
     # step 2 creo metadati per tabella originale con quelli della tabella _CSG
     metadati= ''' INSERT INTO user_sdo_geom_metadata 
                 using SELECT '{0}', column_name, diminfo, srid 
-                FROM user_sdo_geom_metadata WHERE table_name LIKE '{0}_CSG' '''.format(table_name)
+                FROM user_sdo_geom_metadata WHERE table_name LIKE '{0}_CSG' '''.format(table_original_name)
     cur_m=con.cursor()
     try:
         cur_m.execute(metadati)
         logging.debug('Step 2 metadati OK')
     except Exception as m:
-        logging.error('Metadati della tabella {}_CSG non creati. \n Errore: {}'.format(table_name, m))
+        logging.error('Metadati della tabella {}_CSG non creati. \n Errore: {}'.format(table_original_name, m))
     cur_m.close()
     
     

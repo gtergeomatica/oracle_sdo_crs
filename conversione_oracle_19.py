@@ -45,32 +45,7 @@ logging.info("Versione ORACLE: {}".format(con.version))
 # DEBUG VISTE (if debug_viste=0 non fa nulla sulle viste (PER ORA TEST))
 debug_viste=1
 
-# DEBUG - solo nella fase di debug dello script
-# ricreo la condizione iniziale sulle tabelle convertite 
-debug=0
-if debug==1: 
-    query_debug='''SELECT TABLE_NAME FROM ALL_ALL_TABLES 
-        WHERE OWNER LIKE upper('{}') 
-        AND TABLE_NAME LIKE '%_CSG' ORDER BY TABLE_NAME'''.format(user)
-    cur0 = con.cursor()
-    logging.debug(query_debug)
-    cur0.execute(query_debug)
-    for result in cur0:   
-        table_original_name=result[0].replace('_CSG','')
-        query1='ALTER TABLE {0}.{1} RENAME TO "{1}_7791";'.format (user,table_original_name)
-        #query1='DELETE TABLE {0}.{1};'.format (user,table_original_name)
-        cur1 = con.cursor()
-        cur1.execute(query1)
-        cur1.close()
-        query2='ALTER TABLE {0}.{1}_CSG RENAME TO "{1}";'.format (user,table_original_name)
-        cur1 = con.cursor()
-        cur1.execute(query2)
-        cur1.close()
-        query3='DELETE TABLE {0}.{1};'.format (user,table_original_name)
-        cur1 = con.cursor()
-        cur1.execute(query3)
-        cur1.close()
-    cur0.close()
+
 
 
 # STEP 0 - Pulizia USER_SDO_GEOM_METADATA
@@ -275,7 +250,7 @@ for result in cur:
         cur_m.close()
          
         
-        #step 4 - rimuovo i metadati per la tabella originale
+        #step 4 - rimuovo i metadati per la tabella _7791
         metadati= ''' DELETE FROM USER_SDO_GEOM_METADATA WHERE table_name = '{}_7791' '''.format(table_name)
         cur_m=con.cursor()
         try:
