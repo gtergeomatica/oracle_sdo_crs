@@ -10,15 +10,15 @@ import logging
 
 spath=os.path.dirname(os.path.realpath(__file__))
 #exit()
+#spath=sys.path.insert(0, r'C:\Users\assis\Documents\GitHub\oracle_sdo_crs')
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
     filemode ='w',
-    #filename='{}/log/conversione_oracle_19.log'.format(spath),
+    filename='{}\log\conversione_oracle_19.log'.format(spath),
     level=logging.DEBUG)
 
-
 #da toglere commento e modificare su QGIS
-#sys.path.insert(0, r'C:\Users\assis\Documents\GitHub\oracle_sdo_crs')
+sys.path.insert(0, r'C:\Users\assis\Documents\GitHub\oracle_sdo_crs')
 from credenziali import *
 
 
@@ -43,7 +43,7 @@ logging.info("Versione ORACLE: {}".format(con.version))
 
 
 # DEBUG VISTE (if debug_viste=0 non fa nulla sulle viste (PER ORA TEST))
-debug_viste=1
+debug_viste=0
 
 
 
@@ -73,15 +73,17 @@ cur0.close()
 # STEP 1 - Verifica di tutte le tabelle spaziali presenti sul DB e conteggio delle tabelle suddivise per diverso CRS 
 cur = con.cursor()
 #tutte le tabelle geometriche
-query='SELECT count(table_name), srid FROM mdsys.ALL_SDO_GEOM_METADATA group by srid '
+query='SELECT owner, srid, count(table_name) FROM mdsys.ALL_SDO_GEOM_METADATA group by srid, owner ORDER BY owner'
 logging.debug(query)
 cur.execute(query)
 #cur.execute('select * from all_tables')
 i=0
-logging.debug('i,  srid, count table')
+logging.info('*****************************************************')
+logging.info('CENSIMENTO TABELLE PER SCHEMA \nschema,  srid, count table')
 for result in cur:
-    print('{}, {}, {}'.format(i,result[1], result[0]))
+    logging.info('{}, {}, {}'.format(result[0],result[1], result[2]))
     i+=1
+logging.info('*****************************************************')
 
 
 #quit()   
@@ -99,7 +101,11 @@ for result in cur:
 
 
 # Step 2 - Cerco le tabelle con CRS Roma40 - GB F. Ovest dell'utente in questione
-query='SELECT * FROM mdsys.USER_SDO_GEOM_METADATA WHERE (srid = 3003 OR srid=82087)'
+query='''SELECT a.* FROM mdsys.USER_SDO_GEOM_METADATA a 
+JOIN USER_TABLES b ON  a.TABLE_NAME=b.TABLE_NAME 
+LEFT JOIN SYS.all_mviews c ON  a.TABLE_NAME=c.MVIEW_NAME
+WHERE (srid = 3003 OR srid=82087) 
+AND c.MVIEW_NAME IS NULL'''
 logging.debug(query)
 cur.execute(query)
 #cur.execute('select * from all_tables')
@@ -108,6 +114,8 @@ i=0
 #specifico i tipi geometrici supportati da ogr2ogr
 n_type=[0,1,2,3,4,5,6,7]
 type=['UNKNOWN','POINT', 'LINESTRING', 'POLYGON', 'GEOMETRYCOLLECTION', 'MULTIPOINT', 'MULTILINESTRING','MULTIPOLYGON']
+# differenziare type per spatial index LINESTRING --> LINE (uguale per il multiline)
+si_type=['UNKNOWN','POINT', 'LINE', 'POLYGON', 'GEOMETRYCOLLECTION', 'MULTIPOINT', 'MULTILINE','MULTIPOLYGON']
 
 for result in cur:
     logging.info('Passo {}'.format(i))
@@ -123,9 +131,11 @@ for result in cur:
         cur2.execute(subquery)
         print(subquery)
         for result2 in cur2:
-            logging.debug('Dimensione = {}'.format(result2[0]))
+            dim=result2[0]
+            logging.debug('Dimensione = {}'.format(dim))
             ntipo=result2[1]
             tipo=type[ntipo]
+            si_tipo=si_type[ntipo]
             logging.debug('Tipo: {}'.format(tipo))
     except Exception as e:
         check_table=1
@@ -139,9 +149,9 @@ for result in cur:
                 '-s_srs "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl '\
                 '+nadgrids={0}\\share\\proj\\44080835_44400922_R40_F00.gsb +units=m +no_defs" '\
                 '-t_srs EPSG:7791 -nln AAAAABBBB -lco SPATIAL_INDEX=FALSE -lco GEOMETRY_NAME={2} '\
-                '-nlt {3} -lco SRID=7791 -unsetFieldWidth '\
+                '-nlt {3} -lco SRID=7791 -dim {5} -unsetFieldWidth '\
                 'oci:{4}:AAAAABBBB '\
-                'oci:{4}:{1}'.format(qgis_path,table_name,column_name,tipo,parametri_con)
+                'oci:{4}:{1}'.format(qgis_path,table_name,column_name,tipo,parametri_con,dim)
             logging.debug(comando)
             ret=os.system(comando)
             #rinomino la tabella con il nome giusto (problema con ogr2ogr nln per nomi maggiori di 30 char)          
@@ -180,9 +190,9 @@ for result in cur:
                 '-s_srs "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl '\
                 '+nadgrids={0}\\share\\proj\\44080835_44400922_R40_F00.gsb +units=m +no_defs" '\
                 '-t_srs EPSG:7791 -nln {1}_7791 -lco SPATIAL_INDEX=FALSE -lco GEOMETRY_NAME={2} '\
-                '-nlt {3} -lco SRID=7791 -unsetFieldWidth '\
+                '-nlt {3} -lco SRID=7791 -dim {5} -unsetFieldWidth '\
                 'oci:{4}:{1}_7791 '\
-                'oci:{4}:{1}'.format(qgis_path,table_name,column_name,tipo,parametri_con)
+                'oci:{4}:{1}'.format(qgis_path,table_name,column_name,tipo,parametri_con,dim)
             logging.debug(comando)
             ret=os.system(comando)
         if ret!=0:
@@ -220,7 +230,7 @@ for result in cur:
         cur_m=con.cursor()
         try:
             cur_m.execute(metadati)
-            logging.debug('Step 1 metadati OK')
+            logging.debug('Step 1 - impostati metadati per la tabella {}_CSG'.format(table_name))
         except Exception as m:
             logging.error('Metadati della tabella {}_CSG non creati. \n Errore: {}'.format(table_name, m))
         cur_m.close()
@@ -231,7 +241,7 @@ for result in cur:
         cur_m=con.cursor()
         try:
             cur_m.execute(metadati)
-            logging.debug('Step 2 metadati OK: Metadati tabella originale rimossi')
+            logging.debug('Step 2 - Metadati tabella originale {} rimossi'.format(table_name))
         except Exception as m:
             logging.warning('Metadati della tabella {} non rimossi. \n Errore: {}'.format(table_name, m))
         cur_m.close()
@@ -244,7 +254,7 @@ for result in cur:
         cur_m=con.cursor()
         try:
             cur_m.execute(metadati)
-            logging.debug('Step 3 metadati OK')
+            logging.debug('Step 3 - Impostati i metadati della tabella {}'.format(table_name))
         except Exception as m:
             logging.error('Metadati della tabella {} non ricreati. \n Errore: {}'.format(table_name, m))
         cur_m.close()
@@ -255,7 +265,7 @@ for result in cur:
         cur_m=con.cursor()
         try:
             cur_m.execute(metadati)
-            logging.debug('Step 4 metadati OK: Metadati tabella _7791 rimossi')
+            logging.debug('Step 4 - Metadati tabella {}_7791 rimossi'.format(table_name))
         except Exception as m:
             logging.warning('Metadati della tabella {}_7791 non rimossi. \n Errore: {}'.format(table_name, m))
         cur_m.close()
@@ -274,15 +284,25 @@ for result in cur:
             logging.warning(e)
         cur_a.close()
         cur_a = con.cursor()
+        #spatial_index='''CREATE INDEX {0}_SDX
+        #    ON {0} ( GEOMETRY )  
+        #    INDEXTYPE IS MDSYS.SPATIAL_INDEX;
+        #'''.format(table_name, dim, tipo)
         spatial_index='''CREATE INDEX {0}_SDX
             ON {0} ( GEOMETRY )  
-            INDEXTYPE IS MDSYS.SPATIAL_INDEX'''.format(table_name)
+            INDEXTYPE IS MDSYS.SPATIAL_INDEX
+            PARAMETERS ('sdo_indx_dims={1}, layer_gtype={2}');
+        '''.format(table_name, dim, si_tipo)
+        #######################################################################
+        # specificate il tipo di geometria e se è 2D o 3D  !!!!!!! TODO !!!!!!
+        # PARAMETERS con GTYPOE
+        # #######################################################################
         logging.debug(spatial_index)
         try:
             cur_a.execute(spatial_index)
             logging.debug('Creato indice spaziale per tabella {}'.format(table_name))
         except Exception as e:
-            logging.error(e)
+            logging.warning(e)
         cur_a.close()
         # questo if forse sarà da rimuovere (temporaneo)
         if debug_viste > 0:
@@ -315,6 +335,7 @@ for result in cur:
                 try:
                     cur5.execute(subquery_delete)
                     con.commit()
+                    logging.debug('Metadati della vista {} rimossi.'.format(view_name))
                 except Exception as e:
                     logging.warning('Problema nel rimuovere i metadati della vista {}. \n{}'.format(view_name, e))
                 cur5.close() 
