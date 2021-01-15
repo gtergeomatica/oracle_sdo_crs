@@ -129,7 +129,7 @@ for result in cur:
     cur2 = con.cursor()
     try:
         cur2.execute(subquery)
-        print(subquery)
+        logging.debug(subquery)
         for result2 in cur2:
             dim=result2[0]
             logging.debug('Dimensione = {}'.format(dim))
@@ -199,6 +199,21 @@ for result in cur:
             logging.error('return= {} - Problem with ogr2ogr for table {}'.format(ret,table_name))
         else:
             logging.debug(ret)
+        
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # Rimuovo indice spaziale per evitare che ci sia un qualche problema che dia fastidio nei passi seguenti
+        cur_a = con.cursor()
+        spatial_index='''DROP INDEX {0}_SDX'''.format(table_name)
+        logging.debug(spatial_index)
+        try:
+            cur_a.execute(spatial_index)
+            logging.debug('Rimosso indice spaziale per tabella originale {}'.format(table_name))
+        except Exception as e:
+            logging.warning(e)
+        cur_a.close()
+        
+        
+        
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # Rinomino le tabelle di origine e finale
         # aggiungo _SCG (Converted using Script of Gter)
@@ -275,23 +290,13 @@ for result in cur:
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # Creazione indice spaziale 
         cur_a = con.cursor()
-        spatial_index='''DROP INDEX {0}_SDX'''.format(table_name)
-        logging.debug(spatial_index)
-        try:
-            cur_a.execute(spatial_index)
-            logging.debug('Rimosso indice spaziale per tabella originale {}'.format(table_name))
-        except Exception as e:
-            logging.warning(e)
-        cur_a.close()
-        cur_a = con.cursor()
         #spatial_index='''CREATE INDEX {0}_SDX
         #    ON {0} ( GEOMETRY )  
         #    INDEXTYPE IS MDSYS.SPATIAL_INDEX;
         #'''.format(table_name, dim, tipo)
-        spatial_index='''CREATE INDEX {0}_SDX
-            ON {0} ( GEOMETRY )  
-            INDEXTYPE IS MDSYS.SPATIAL_INDEX
-            PARAMETERS ('sdo_indx_dims={1}, layer_gtype={2}');
+        spatial_index='''CREATE INDEX {0}_SDX 
+        ON {0} (GEOMETRY) INDEXTYPE IS MDSYS.SPATIAL_INDEX 
+        PARAMETERS ('sdo_indx_dims={1}, layer_gtype={2}')
         '''.format(table_name, dim, si_tipo)
         #######################################################################
         # specificate il tipo di geometria e se è 2D o 3D  !!!!!!! TODO !!!!!!
@@ -304,6 +309,9 @@ for result in cur:
         except Exception as e:
             logging.warning(e)
         cur_a.close()
+        
+        ##################################################################################
+        # questa parte non e' da fare qua
         # questo if forse sarà da rimuovere (temporaneo)
         if debug_viste > 0:
             #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -357,10 +365,9 @@ for result in cur:
                 join all_mviews b on a.owner=b.owner and a.name=b.view_name
                 WHERE upper(a.referenced_name) like upper(\'%{}%\')
                 and a.referenced_type = \'TABLE\''''.format(table_name)
-            logging.debug(query_mviste)
-        
-        
-        
+            logging.debug(query_mviste)   
         
     i+=1
+
+
 con.close()
