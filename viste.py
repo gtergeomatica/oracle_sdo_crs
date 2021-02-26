@@ -5,7 +5,7 @@ import os,sys,shutil,re,glob, getopt
 import subprocess
 from subprocess import *
 
-import osr
+#import osr
 
 import cx_Oracle
 
@@ -15,12 +15,12 @@ import logging
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # PARTE UTILE PER LANCIARE LO SCRIPT DA QGIS o da python (es. VisualCode)
 # decommentare e modificare la seguente riga per lanciare lo script fuori da QGIS
-#spath=os.path.dirname(os.path.realpath(__file__))
+spath=os.path.dirname(os.path.realpath(__file__))
 #exit()
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
     filemode ='w',
-    #filename='{}/log/conversione_oracle_19.log'.format(spath),
+    filename='{}/log/conversione_oracle_viste_19.log'.format(spath),
     level=logging.DEBUG)
 
 
@@ -32,7 +32,7 @@ from credenziali import *
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # PARTE UTILE PER LANCIARE LO SCRIPT DA QGIS o da python (es. VisualCode)
 # decommentare e modificare la seguente riga per lanciare lo script fuori da QGIS
-#cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
+cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
 
 # decommentare e modificare la seguente riga per lanciare lo script da QGIS
 #cx_Oracle.init_oracle_client()
@@ -56,6 +56,10 @@ WHERE  a.TABLE_NAME=c.VIEW_NAME
 AND (srid = 3003 OR srid=82087) order by TABLE_NAME'''
 logging.debug(query)
 cur.execute(query)
+
+# per le viste materializzate dice Cristina di stare attenti perchè forse è necessario 
+# come primo step rimuovere l'indice spaziale per poi ricrearlo
+
 
 lb=[]
 
@@ -106,10 +110,11 @@ for result in cur:
             ('{0}','{1}', 
             sdo_dim_array(sdo_dim_element('X',{2},{3},0.005),
             sdo_dim_element('Y',{4},{5},0.005)),
-            7791);'''.format(view_x, geom_name, minx, maxx, miny, maxy)
+            7791)'''.format(view_x, geom_name, minx, maxx, miny, maxy)
             cur1 = con.cursor()
             try: 
-                cur1.execute(query_srid)
+                cur1.execute(query_insert)
+                con.commit()
             except Exception as e:
                 logging.error(e)
             cur1.close()

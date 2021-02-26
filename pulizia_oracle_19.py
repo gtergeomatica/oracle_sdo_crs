@@ -13,7 +13,7 @@ spath=os.path.dirname(os.path.realpath(__file__))
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
     filemode ='w',
-    #filename='{}/log/conversione_oracle_19.log'.format(spath),
+    filename='{}/log/pulizia_oracle_19.log'.format(spath),
     level=logging.DEBUG)
 
 
@@ -109,6 +109,7 @@ if debug==1:
         cur_m=con.cursor()
         try:
             cur_m.execute(metadati)
+            con.commit()
             logging.debug('Step 2 metadati OK')
         except Exception as m:
             logging.error('Metadati della tabella {}_CSG non creati. \n Errore: {}'.format(table_original_name, m))

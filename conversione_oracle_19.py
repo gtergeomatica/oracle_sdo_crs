@@ -73,7 +73,11 @@ cur0.close()
 # STEP 1 - Verifica di tutte le tabelle spaziali presenti sul DB e conteggio delle tabelle suddivise per diverso CRS 
 cur = con.cursor()
 #tutte le tabelle geometriche
-query='SELECT owner, srid, count(table_name) FROM mdsys.ALL_SDO_GEOM_METADATA group by srid, owner ORDER BY owner'
+query='''SELECT a.owner, a.srid, count(a.table_name) FROM mdsys.ALL_SDO_GEOM_METADATA a
+LEFT JOIN SYS.all_mviews c ON  a.TABLE_NAME=c.MVIEW_NAME
+WHERE c.MVIEW_NAME IS NULL 
+group by a.srid, a.owner 
+ORDER BY a.owner'''
 logging.debug(query)
 cur.execute(query)
 #cur.execute('select * from all_tables')
@@ -105,7 +109,7 @@ query='''SELECT a.* FROM mdsys.USER_SDO_GEOM_METADATA a
 JOIN USER_TABLES b ON  a.TABLE_NAME=b.TABLE_NAME 
 LEFT JOIN SYS.all_mviews c ON  a.TABLE_NAME=c.MVIEW_NAME
 WHERE (srid = 3003 OR srid=82087) 
-AND c.MVIEW_NAME IS NULL'''
+AND c.MVIEW_NAME IS NULL AND a.TABLE_NAME NOT LIKE '%_CSG' '''
 logging.debug(query)
 cur.execute(query)
 #cur.execute('select * from all_tables')
@@ -119,12 +123,15 @@ si_type=['UNKNOWN','POINT', 'LINE', 'POLYGON', 'GEOMETRYCOLLECTION', 'MULTIPOINT
 
 for result in cur:
     logging.info('Passo {}'.format(i))
+    cc=0 #questo lo uso come check
     table_name=result[0]
     column_name=result[1]
     logging.debug("{}, {}, {}, {}".format(result[0], result[1], result[2], result[3]))
     #cerco dimensione (2D, 3D o 4D) e tipologia di tabella geometrica
-    subquery='SELECT a.{1}.Get_Dims(), a.{1}.Get_GType() FROM {0} a GROUP BY a.{1}.Get_Dims(), a.{1}.Get_GType()'.format(table_name,column_name)
-    logging.debug(subquery)
+    subquery='''SELECT a.{1}.Get_Dims(), a.{1}.Get_GType() FROM {0} a 
+    where a.GEOMETRY.Get_Dims() is not null and a.GEOMETRY.Get_Dims() is not null 
+    GROUP BY a.{1}.Get_Dims(), a.{1}.Get_GType()'''.format(table_name,column_name)
+    #logging.debug(subquery)
     check_table=0
     cur2 = con.cursor()
     try:
@@ -158,9 +165,12 @@ for result in cur:
             cur_a = con.cursor()
             rename=''' ALTER TABLE {}."AAAAABBBB" RENAME TO "{}_7791" '''.format(user,table_name)
             logging.debug(rename)
-            cur_a.execute(rename)
-            cur_a.close()
-            
+            try:
+                cur_a.execute(rename)
+                cur_a.close()
+            except Exception as m:
+                logging.error(m)
+                continue
             metadati= ''' INSERT INTO user_sdo_geom_metadata 
                     using SELECT '{0}_7791', column_name, diminfo, srid 
                     FROM user_sdo_geom_metadata WHERE table_name LIKE 'AAAAABBBB' '''.format(table_name)
@@ -225,6 +235,7 @@ for result in cur:
             logging.debug('Rinominata tabella {}'.format(table_name))
         except Exception as e:
             logging.error(e)
+            continue
         cur3.close()
         query2='ALTER TABLE {0}.{1}_7791 RENAME TO "{1}"'.format (user,table_name)
         logging.debug(query2)
@@ -234,6 +245,7 @@ for result in cur:
             logging.debug('Rinominata tabella {}_7791'.format(table_name))
         except Exception as e:
             logging.error(e)
+            continue
         cur3.close()
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # Aggiorno i metadati spaziali
