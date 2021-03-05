@@ -32,7 +32,7 @@ from credenziali import *
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # PARTE UTILE PER LANCIARE LO SCRIPT DA QGIS o da python (es. VisualCode)
 # decommentare e modificare la seguente riga per lanciare lo script fuori da QGIS
-cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
+cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_9")
 
 # decommentare e modificare la seguente riga per lanciare lo script da QGIS
 #cx_Oracle.init_oracle_client()
@@ -63,6 +63,11 @@ cur.execute(query)
 
 lb=[]
 
+
+
+# DA MODIFICARE PER IL CASO 3D (ripensare il ciclo) !!!! che in produzione ci sono anche i null (forse basta toglierli nel select precedente)
+
+
 i=1
 for result in cur:
     if result[1]=='X':
@@ -74,7 +79,12 @@ for result in cur:
         view_y=result[0]
         miny=result[2]
         maxy=result[3]
-    if (i % 2==0 and view_x==view_y):
+    elif result[1]=='Z':
+        view_z=result[0]
+        minz=result[2]
+        maxz=result[3]
+
+    if (view_x==view_y) OR ()):
         query_srid='''SELECT (SDO_GEOM.SDO_MBR(GEOMETRY).SDO_SRID) AS SRID 
         FROM {0}.{1}
         GROUP BY SDO_GEOM.SDO_MBR(GEOMETRY).SDO_SRID'''.format(user,result[0])

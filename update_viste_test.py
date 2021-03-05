@@ -56,7 +56,7 @@ logging.info("Versione ORACLE Produzione: {}".format(con_prod.version))
 
 
 curp = con_prod.cursor()
-# Cerco le viste con CRS Roma40 - GB F. Ovest dell'utente in questione
+# Cerco le viste dell'utente in questione
 query='''select VIEW_NAME,TEXT_VC FROM USER_VIEWS'''
 logging.debug(query)
 curp.execute(query)
@@ -108,6 +108,9 @@ for vistap in curp:
             curp2.close()
             diminfo='''{})'''.format(diminfo)
             #logging.debug(diminfo)
+            ##################################################################################
+            #qua bisognerebbe inserire un delete se si vuole fare rigirare lo script 
+            ##################################################################################
             query_metadati1=''' INSERT INTO mdsys.USER_SDO_GEOM_METADATA
             (TABLE_NAME, COLUMN_NAME, DIMINFO, SRID) 
             VALUES ('{0}','{1}',{2}, {3})'''.format(mp[0],mp[1],diminfo,mp[3])
