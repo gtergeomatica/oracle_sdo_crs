@@ -7,33 +7,16 @@ import cx_Oracle
 #libreria per gestione log
 import logging
 
+from impostazione_base import *
 
-spath=os.path.dirname(os.path.realpath(__file__))
-#exit()
-#spath=sys.path.insert(0, r'C:\Users\assis\Documents\GitHub\oracle_sdo_crs')
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
     filemode ='w',
     filename='{}\log\conversione_oracle_19.log'.format(spath),
     level=logging.DEBUG)
 
-#da toglere commento e modificare su QGIS
-sys.path.insert(0, r'C:\Users\assis\Documents\GitHub\oracle_sdo_crs')
+
 from credenziali import *
-
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# PARTE UTILE PER LANCIARE LO SCRIPT DA QGIS o da python (es. VisualCode)
-# decommentare e modificare la seguente riga per lanciare lo script fuori da QGIS
-cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_9")
-
-# decommentare e modificare la seguente riga per lanciare lo script da QGIS
-#cx_Oracle.init_oracle_client()
-
-#cartella dove è installato QGIS
-qgis_path="C:\OSGeo4W64"
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
 
 # con = cx_Oracle.connect('GPE/gpeowner@192.168.1.87/xe')
@@ -88,7 +71,7 @@ for result in cur:
     logging.info('{}, {}, {}'.format(result[0],result[1], result[2]))
     i+=1
 logging.info('*****************************************************')
-
+cur.close()
 
 #quit()   
 #tutte le tabelle geometriche
@@ -105,12 +88,14 @@ logging.info('*****************************************************')
 
 
 # Step 2 - Cerco le tabelle con CRS Roma40 - GB F. Ovest dell'utente in questione
+logging.debug('''Cerco le tabelle con CRS Roma40 - GB F. Ovest dell'utente in questione''')
 query='''SELECT a.* FROM mdsys.USER_SDO_GEOM_METADATA a 
 JOIN USER_TABLES b ON  a.TABLE_NAME=b.TABLE_NAME 
 LEFT JOIN SYS.all_mviews c ON  a.TABLE_NAME=c.MVIEW_NAME
 WHERE (srid = 3003 OR srid=82087) 
 AND c.MVIEW_NAME IS NULL AND a.TABLE_NAME NOT LIKE '%_CSG' '''
 logging.debug(query)
+cur = con.cursor()
 cur.execute(query)
 #cur.execute('select * from all_tables')
 i=0
@@ -207,6 +192,8 @@ for result in cur:
             ret=os.system(comando)
         if ret!=0:
             logging.error('return= {} - Problem with ogr2ogr for table {}'.format(ret,table_name))
+            logging.warning('Taella {} non convertita correttamente'.format(ret,table_name))
+            continue
         else:
             logging.debug(ret)
         
@@ -366,6 +353,7 @@ for result in cur:
                 cur6=con.cursor()
                 try:
                     cur6.execute(metadati)
+                    con.commit()
                 except Exception as m:
                     logging.error('Metadati della vista {} non creati. \n Errore: '.format(view_name, m))
                 cur6.close()

@@ -25,7 +25,7 @@ from credenziali import *
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # PARTE UTILE PER LANCIARE LO SCRIPT DA QGIS o da python (es. VisualCode)
 # decommentare e modificare la seguente riga per lanciare lo script fuori da QGIS
-cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_9")
+cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
 
 # decommentare e modificare la seguente riga per lanciare lo script da QGIS
 #cx_Oracle.init_oracle_client()
