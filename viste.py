@@ -48,22 +48,44 @@ logging.info("Versione ORACLE: {}".format(con.version))
 # come primo step rimuovere l'indice spaziale per poi ricrearlo
 
 cur0 = con.cursor()
-query='''SELECT a.TABLE_NAME, count(b.SDO_DIMNAME) 
+query='''SELECT a.TABLE_NAME, count(b.SDO_DIMNAME) , 'v' AS tipo
 FROM mdsys.USER_SDO_GEOM_METADATA a,
 TABLE(a.DIMINFO) b, USER_VIEWS c 
 WHERE  a.TABLE_NAME=c.VIEW_NAME
 AND (srid = 3003 OR srid=82087) AND SDO_DIMNAME IS NOT null  
+GROUP BY TABLE_NAME
+UNION
+SELECT a.TABLE_NAME, count(b.SDO_DIMNAME) , 'mv' AS tipo
+FROM mdsys.USER_SDO_GEOM_METADATA a,
+TABLE(a.DIMINFO) b, USER_MVIEWS c 
+WHERE  a.TABLE_NAME=c.MVIEW_NAME
+AND (srid = 3003 OR srid=82087) AND SDO_DIMNAME IS NOT null  
 GROUP BY TABLE_NAME'''
+
 logging.debug(query)
 cur0.execute(query)
 
-for vv in cur0:
-    logging.debug('Sto analizzando la vista {}'.format(vv[0])) 
-    query1='''SELECT a.TABLE_NAME, b.*, a.COLUMN_NAME
+for vv in cur0: 
+    if vv[2] =='v':
+        logging.debug('Sto analizzando la vista {}'.format(vv[0]))
+        query1='''SELECT a.TABLE_NAME, b.*, a.COLUMN_NAME
             FROM mdsys.USER_SDO_GEOM_METADATA a,
             TABLE(a.DIMINFO) b, USER_VIEWS c 
             WHERE  a.TABLE_NAME=c.VIEW_NAME
-            AND (srid = 3003 OR srid=82087) AND SDO_DIMNAME IS NOT null 
+            AND SDO_DIMNAME IS NOT null 
+            AND a.TABLE_NAME='{}' '''.format(vv[0])
+    elif vv[2]=='mv':
+        logging.debug('Sto analizzando la vista materializzata {}'.format(vv[0]))
+        
+        # refresh vista materializzata
+        # BEGIN DBMS_SNAPSHOT.REFRESH( '"MEDIATORE"."CIVICI_ATTIVI"','C'); end
+        
+        
+        query1='''SELECT a.TABLE_NAME, b.*, a.COLUMN_NAME
+            FROM mdsys.USER_SDO_GEOM_METADATA a,
+            TABLE(a.DIMINFO) b, USER_MVIEWS c 
+            WHERE  a.TABLE_NAME=c.MVIEW_NAME
+            AND SDO_DIMNAME IS NOT null 
             AND a.TABLE_NAME='{}' '''.format(vv[0])
     cur = con.cursor()
     logging.debug(query1)
@@ -176,3 +198,9 @@ for vv in cur0:
         cur1.close()
     else:
         logging.info('Non faccio nulla')           
+
+
+
+logging.info("Finito ciclo su viste e/o viste materializzate da convertire. Chiusura connessione al DB in corso")
+cur0.close()
+con.close()

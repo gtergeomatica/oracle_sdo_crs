@@ -9,6 +9,8 @@ import logging
 
 from impostazione_base import *
 
+# inserire riferimento a data e schema
+
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
     filemode ='w',
@@ -369,5 +371,5 @@ for result in cur:
         
     i+=1
 
-
+logging.info("Finito ciclo su tabelle da convertire. Chiusura connessione al DB in corso") 
 con.close()
