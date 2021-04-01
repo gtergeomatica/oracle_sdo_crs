@@ -18,16 +18,15 @@ import logging
 
 from impostazione_base import *
 
+from credenziali import *
+
 #exit()
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
     filemode ='w',
-    filename='{}/log/conversione_oracle_viste_19.log'.format(spath),
+    filename='{}/log/{}_{}_conversione_oracle_viste_19.log'.format(spath, date_file, user),
     level=logging.DEBUG)
 
-
-
-from credenziali import *
 
 # con = cx_Oracle.connect('GPE/gpeowner@192.168.1.87/xe')
 parametri_con='{}/{}@//{}/{}'.format(user,pwd,host,service)
@@ -76,10 +75,29 @@ for vv in cur0:
             AND a.TABLE_NAME='{}' '''.format(vv[0])
     elif vv[2]=='mv':
         logging.debug('Sto analizzando la vista materializzata {}'.format(vv[0]))
-        
-        # refresh vista materializzata
-        # BEGIN DBMS_SNAPSHOT.REFRESH( '"MEDIATORE"."CIVICI_ATTIVI"','C'); end
-        
+        # DROP INDEX
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # Rimuovo indice spaziale per evitare che ci sia un qualche problema che dia fastidio nei passi seguenti
+        cur_a = con.cursor()
+        spatial_index='''DROP INDEX {0}_SDX'''.format(vv[0])
+        logging.debug(spatial_index)
+        try:
+            cur_a.execute(spatial_index)
+            logging.debug('Rimosso indice spaziale per vista materializzata {}'.format(vv[0]))
+        except Exception as e:
+            logging.warning(e)
+        cur_a.close()
+
+        # refresh vista materializzata 
+        query_r='''BEGIN DBMS_SNAPSHOT.REFRESH( '"{}"."{}"','C'); end;'''.format(user,vv[0])
+        cur_r = con.cursor()
+        logging.debug(query_r)
+        try:
+            cur_r.execute(query_r)
+        except Exception as e:
+            logging.error('''Problema con il refresh della vista materializzata {}. Errore {}'''.format(vv[0],e))
+            continue
+        cur_r.close()    
         
         query1='''SELECT a.TABLE_NAME, b.*, a.COLUMN_NAME
             FROM mdsys.USER_SDO_GEOM_METADATA a,
@@ -100,7 +118,7 @@ for vv in cur0:
         #check_z=0
         if result[1]=='X':
             #view_x=result[0]
-            geom_name=result[1]
+            #geom_name=result[]
             minx=result[2]
             maxx=result[3]
             column_name=result[5]
@@ -162,7 +180,7 @@ for vv in cur0:
         
         # rimozione DB vecchi metadati
         query_delete='''DELETE FROM user_sdo_geom_metadata
-        WHERE table_name='{}';'''.format(vv[0])
+        WHERE table_name='{}' '''.format(vv[0])
         logging.debug(query_delete)
         cur1 = con.cursor()
         try: 
@@ -178,14 +196,14 @@ for vv in cur0:
             ('{0}','{1}', 
             sdo_dim_array(sdo_dim_element('X',{2},{3},0.005),
             sdo_dim_element('Y',{4},{5},0.005)),
-            7791)'''.format(vv[0], geom_name, new_minx, new_maxx, new_miny, new_maxy)
+            7791)'''.format(vv[0], column_name, new_minx, new_maxx, new_miny, new_maxy)
         elif vv[1]==3:
             query_insert=''' insert into user_sdo_geom_metadata 
             (table_name,column_name,diminfo,srid) values
             ('{0}','{1}', 
             sdo_dim_array(sdo_dim_element('X',{2},{3},0.005),
             sdo_dim_element('Y',{4},{5},0.005),sdo_dim_element('Z',{6},{7},0.005) ),
-            7791)'''.format(vv[0], geom_name, new_minx, new_maxx, new_miny, new_maxy, minz, maxz)
+            7791)'''.format(vv[0], column_name, new_minx, new_maxx, new_miny, new_maxy, minz, maxz)
         else:
             logging.error('Problema nei metadati')
             continue
@@ -196,6 +214,10 @@ for vv in cur0:
         except Exception as e:
             logging.error(e)
         cur1.close()
+        # ricreare metadati spaziali
+
+
+        
     else:
         logging.info('Non faccio nulla')           
 
