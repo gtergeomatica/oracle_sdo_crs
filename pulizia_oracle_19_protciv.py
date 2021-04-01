@@ -7,8 +7,8 @@ import cx_Oracle
 #libreria per gestione log
 import logging
 
+from impostazione_base import *
 
-spath=os.path.dirname(os.path.realpath(__file__))
 #exit()
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
@@ -20,20 +20,6 @@ logging.basicConfig(
 #da toglere commento e modificare su QGIS
 #sys.path.insert(0, r'C:\Users\assis\Documents\GitHub\oracle_sdo_crs')
 from credenziali import *
-
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# PARTE UTILE PER LANCIARE LO SCRIPT DA QGIS o da python (es. VisualCode)
-# decommentare e modificare la seguente riga per lanciare lo script fuori da QGIS
-cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_6")
-
-# decommentare e modificare la seguente riga per lanciare lo script da QGIS
-#cx_Oracle.init_oracle_client()
-
-#cartella dove è installato QGIS
-qgis_path="C:\OSGeo4W64"
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
 
 # con = cx_Oracle.connect('GPE/gpeowner@192.168.1.87/xe')

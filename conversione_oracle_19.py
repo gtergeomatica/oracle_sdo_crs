@@ -4,21 +4,24 @@
 import os,sys,shutil,re,glob, getopt
 import cx_Oracle
 
+
 #libreria per gestione log
 import logging
 
 from impostazione_base import *
+
+from credenziali import *
 
 # inserire riferimento a data e schema
 
 logging.basicConfig(
     format='%(asctime)s\t%(levelname)s\t%(message)s',
     filemode ='w',
-    filename='{}\log\conversione_oracle_19.log'.format(spath),
+    filename='{}\log\{}_{}_conversione_oracle_19.log'.format(spath, date_file, user),
     level=logging.DEBUG)
 
 
-from credenziali import *
+
 
 
 # con = cx_Oracle.connect('GPE/gpeowner@192.168.1.87/xe')
