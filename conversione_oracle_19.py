@@ -105,21 +105,16 @@ cur.execute(query)
 #cur.execute('select * from all_tables')
 i=0
 
-#specifico i tipi geometrici supportati da ogr2ogr
-n_type=[0,1,2,3,4,5,6,7]
-type=['UNKNOWN','POINT', 'LINESTRING', 'POLYGON', 'GEOMETRYCOLLECTION', 'MULTIPOINT', 'MULTILINESTRING','MULTIPOLYGON']
-# differenziare type per spatial index LINESTRING --> LINE (uguale per il multiline)
-si_type=['UNKNOWN','POINT', 'LINE', 'POLYGON', 'GEOMETRYCOLLECTION', 'MULTIPOINT', 'MULTILINE','MULTIPOLYGON']
 
 for result in cur:
-    logging.info('Passo {}'.format(i))
+    logging.info('*******************************************\nPasso {}'.format(i))
     cc=0 #questo lo uso come check
     table_name=result[0]
     column_name=result[1]
     logging.debug("{}, {}, {}, {}".format(result[0], result[1], result[2], result[3]))
     #cerco dimensione (2D, 3D o 4D) e tipologia di tabella geometrica
     subquery='''SELECT a.{1}.Get_Dims(), a.{1}.Get_GType() FROM {0} a 
-    where a.GEOMETRY.Get_Dims() is not null and a.GEOMETRY.Get_Dims() is not null 
+    where a.{1}.Get_Dims() is not null and a.{1}.Get_Dims() is not null 
     GROUP BY a.{1}.Get_Dims(), a.{1}.Get_GType()'''.format(table_name,column_name)
     #logging.debug(subquery)
     check_table=0
@@ -249,6 +244,7 @@ for result in cur:
         cur_m=con.cursor()
         try:
             cur_m.execute(metadati)
+            con.commit()
             logging.debug('Step 1 - impostati metadati per la tabella {}_CSG'.format(table_name))
         except Exception as m:
             logging.error('Metadati della tabella {}_CSG non creati. \n Errore: {}'.format(table_name, m))
@@ -260,6 +256,7 @@ for result in cur:
         cur_m=con.cursor()
         try:
             cur_m.execute(metadati)
+            con.commit()
             logging.debug('Step 2 - Metadati tabella originale {} rimossi'.format(table_name))
         except Exception as m:
             logging.warning('Metadati della tabella {} non rimossi. \n Errore: {}'.format(table_name, m))
@@ -273,6 +270,7 @@ for result in cur:
         cur_m=con.cursor()
         try:
             cur_m.execute(metadati)
+            con.commit()
             logging.debug('Step 3 - Impostati i metadati della tabella {}'.format(table_name))
         except Exception as m:
             logging.error('Metadati della tabella {} non ricreati. \n Errore: {}'.format(table_name, m))
@@ -284,6 +282,7 @@ for result in cur:
         cur_m=con.cursor()
         try:
             cur_m.execute(metadati)
+            con.commit()
             logging.debug('Step 4 - Metadati tabella {}_7791 rimossi'.format(table_name))
         except Exception as m:
             logging.warning('Metadati della tabella {}_7791 non rimossi. \n Errore: {}'.format(table_name, m))
@@ -299,9 +298,9 @@ for result in cur:
         #    INDEXTYPE IS MDSYS.SPATIAL_INDEX;
         #'''.format(table_name, dim, tipo)
         spatial_index='''CREATE INDEX {0}_SDX 
-        ON {0} (GEOMETRY) INDEXTYPE IS MDSYS.SPATIAL_INDEX 
+        ON {0} ({3}) INDEXTYPE IS MDSYS.SPATIAL_INDEX 
         PARAMETERS ('sdo_indx_dims={1}, layer_gtype={2}')
-        '''.format(table_name, dim, si_tipo)
+        '''.format(table_name, dim, si_tipo, column_name)
         #######################################################################
         # specificate il tipo di geometria e se è 2D o 3D  !!!!!!! TODO !!!!!!
         # PARAMETERS con GTYPOE
@@ -309,11 +308,39 @@ for result in cur:
         logging.debug(spatial_index)
         try:
             cur_a.execute(spatial_index)
+            con.commit()
             logging.debug('Creato indice spaziale per tabella {}'.format(table_name))
         except Exception as e:
             logging.warning(e)
         cur_a.close()
-        
+
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # Ripristino permessi
+
+        #da qua li verifico (GRANTEE, PRIVILEGE e GRANTABLE che decide se usare o meno il WITH...)
+        queryp0='''SELECT PRIVILEGE, GRANTEE, GRANTABLE FROM USER_TAB_PRIVS 
+        WHERE TABLE_NAME like '{}_CSG' '''.format(table_name)
+        cur_p0 = con.cursor()
+        logging.debug(queryp0)
+        cur_p0.execute(queryp0)
+        for priv in cur_p0:
+            queryp1 = '''GRANT {0} ON {1} TO {2} '''.format(priv[0],table_name, priv[1])
+            if priv[2] == 'YES':
+                queryp1 = '{} WITH GRANT OPTION'.format(queryp1)
+            cur_p1 = con.cursor()
+            logging.debug(queryp1)
+            try:
+                cur_p1.execute(queryp1)
+                con.commit()
+            except Exception as e:
+                logging.warning(e)
+            cur_p1.close()
+        cur_p0.close()
+
+        # qua li assegno
+        #GRANT SELECT ON RIS_ELEZIONI_EU_2019 TO GTER_USER WITH GRANT OPTION;
+
+
         ##################################################################################
         # questa parte non e' da fare qua
         # questo if forse sarà da rimuovere (temporaneo)

@@ -53,7 +53,13 @@ i=0
 for vistap in curp:
     i+=1
     vistep.append(vistap[0])
+    # fare la stessa cosa anche per le VM 
+
+
     query1=''' SELECT VIEW_NAME,TEXT_VC FROM USER_VIEWS WHERE VIEW_NAME = '{}' '''.format(vistap[0])
+    
+    
+    
     logging.info('{} - {}'.format(i,vistap[0]))
     curt=con_test.cursor()
     curt.execute(query1)

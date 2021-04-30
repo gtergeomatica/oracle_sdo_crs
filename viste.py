@@ -67,6 +67,7 @@ cur0.execute(query)
 for vv in cur0: 
     if vv[2] =='v':
         logging.debug('Sto analizzando la vista {}'.format(vv[0]))
+        # select sui metadati (per V)
         query1='''SELECT a.TABLE_NAME, b.*, a.COLUMN_NAME
             FROM mdsys.USER_SDO_GEOM_METADATA a,
             TABLE(a.DIMINFO) b, USER_VIEWS c 
@@ -88,6 +89,10 @@ for vv in cur0:
             logging.warning(e)
         cur_a.close()
 
+        
+
+
+
         # refresh vista materializzata 
         query_r='''BEGIN DBMS_SNAPSHOT.REFRESH( '"{}"."{}"','C'); end;'''.format(user,vv[0])
         cur_r = con.cursor()
@@ -98,13 +103,14 @@ for vv in cur0:
             logging.error('''Problema con il refresh della vista materializzata {}. Errore {}'''.format(vv[0],e))
             continue
         cur_r.close()    
-        
+        # select sui metadati (per VM)
         query1='''SELECT a.TABLE_NAME, b.*, a.COLUMN_NAME
             FROM mdsys.USER_SDO_GEOM_METADATA a,
             TABLE(a.DIMINFO) b, USER_MVIEWS c 
             WHERE  a.TABLE_NAME=c.MVIEW_NAME
             AND SDO_DIMNAME IS NOT null 
             AND a.TABLE_NAME='{}' '''.format(vv[0])
+    #lancio il select dei metadati
     cur = con.cursor()
     logging.debug(query1)
     try:
@@ -132,13 +138,33 @@ for vv in cur0:
             maxz=result[3]
     cur.close()
     
-    # questa query non va bene perchè non è detto che tutte 
-    # le viste abbiano la colonna
-    # GEOMETRY 
-    # prima di lanciarla bisognerebbe cercare di recuperare il nome della 
-    # colonna geometry
+
+    logging.debug('Il nome della colonna geometry è {}'.format(column_name))
     
-    
+
+    # cerco tipo e dimensione della vista materializzata
+    subquery='''SELECT a.{1}.Get_Dims(), a.{1}.Get_GType() FROM {0} a 
+    where a.{1}.Get_Dims() is not null and a.{1}.Get_Dims() is not null 
+    GROUP BY a.{1}.Get_Dims(), a.{1}.Get_GType()'''.format(vv[0],column_name)
+    logging.debug(subquery)
+    check_table=0
+    cur2 = con.cursor()
+    try:
+        cur2.execute(subquery)
+        logging.debug(subquery)
+        for result2 in cur2:
+            dim=result2[0]
+            logging.debug('Dimensione = {}'.format(dim))
+            ntipo=result2[1]
+            tipo=type[ntipo]
+            si_tipo=si_type[ntipo]
+            logging.debug('Tipo: {}'.format(tipo))
+    except Exception as e:
+        check_table=1
+        logging.warning('{}'.format(e))
+    cur2.close()
+
+    # select sui metadati stimati
     query_srid = '''SELECT (SDO_GEOM.SDO_MBR({2}).SDO_SRID) AS SRID 
         FROM {0}.{1}
         GROUP BY SDO_GEOM.SDO_MBR({2}).SDO_SRID'''.format(user,vv[0],column_name)
@@ -214,8 +240,30 @@ for vv in cur0:
         except Exception as e:
             logging.error(e)
         cur1.close()
-        # ricreare metadati spaziali
-
+        # ricreare indice spaziali
+        if vv[2]=='mv':
+            #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            # Creazione indice spaziale 
+            cur_a = con.cursor()
+            #spatial_index='''CREATE INDEX {0}_SDX
+            #    ON {0} ( GEOMETRY )  
+            #    INDEXTYPE IS MDSYS.SPATIAL_INDEX;
+            #'''.format(table_name, dim, tipo)
+            spatial_index='''CREATE INDEX {0}_SDX 
+            ON {0} ({3}) INDEXTYPE IS MDSYS.SPATIAL_INDEX 
+            PARAMETERS ('sdo_indx_dims={1}, layer_gtype={2}')
+            '''.format(vv[0], vv[1], si_tipo, column_name)
+            #######################################################################
+            # specificate il tipo di geometria e se è 2D o 3D  !!!!!!! TODO !!!!!!
+            # PARAMETERS con GTYPOE
+            # #######################################################################
+            logging.debug(spatial_index)
+            try:
+                cur_a.execute(spatial_index)
+                logging.debug('Creato indice spaziale per tabella {}'.format(table_name))
+            except Exception as e:
+                logging.warning('''Problema nella creazione dell'indice spaziale: {} '''.format(e))
+            cur_a.close()
 
         
     else:

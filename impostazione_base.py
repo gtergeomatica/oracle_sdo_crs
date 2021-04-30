@@ -26,3 +26,10 @@ cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_9")
 #cartella dove è installato QGIS
 qgis_path="C:\OSGeo4W64"
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+#specifico i tipi geometrici supportati da ogr2ogr
+n_type=[0,1,2,3,4,5,6,7]
+type=['UNKNOWN','POINT', 'LINESTRING', 'POLYGON', 'GEOMETRYCOLLECTION', 'MULTIPOINT', 'MULTILINESTRING','MULTIPOLYGON']
+# differenziare type per spatial index LINESTRING --> LINE (uguale per il multiline)
+si_type=['UNKNOWN','POINT', 'LINE', 'POLYGON', 'GEOMETRYCOLLECTION', 'MULTIPOINT', 'MULTILINE','MULTIPOLYGON']
