@@ -118,13 +118,19 @@ Per fruire dello script su sistemi Windows si suggerisce di eseguire le seguenti
 
 4) digitare `py3_env` che dovrebbe stampare i percorsi dell'installazione python con QGIS e abilitare python sulla shell OsGeo
 
+4) digitare `python -m pip install --upgrade pip` per aggiornare pip
+
 5) digitare `python -m pip install cx_Oracle` (da testare ma forse occorre avere i privilegi di installare qualcosa nella cartella C:\OSGeo4W64)
 
-A quel punto lo script dovrebbe funzionare direttamente dalla console python di QGIS
+A quel punto lo script dovrebbe funzionare direttamente dalla console python di QGIS, ma c'è un problema con la libreria per i log (logging) per cui si consiglia pertanto di usare la **powershell di Windows**
+
+
 
 1) scaricare la presente cartella con il tasto in alto a destra 
 
 ![wp](/img/download.PNG)
+
+
 
 2) scompattare la cartella e aggiungere file *credenziali.py* con le credenziali di accesso al DB oracle:
 
@@ -137,6 +143,55 @@ service='XXXXX.dominio.it'
 
 ```
 
+3) scaricare instant client oracle https://www.oracle.com/it/database/technologies/instant-client/downloads.html
+
+![wp](/img/oic0.PNG)
+
+
+4) scompattare la cartella e salvarla da qualche parte sul PC, quindi aprire il file **impostazioni_base.py** e modificare la seguente riga specificando il percorso alla cartella scompattata
+
+```
+cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_9")
+```
+
+
+3) aprire la **powershell** di windows
+
+![wp](/img/powershell0.PNG)
+
+
+
+4) andare alla cartella scaricata, a titolo di esempio 
+
+```
+cd .\Documents\GitHub\oracle_sdo_crs\ 
+```
+![wp](/img/powershell1.PNG)
+
+
+
+5) Lanciare uno script python. 
+
+Quello di test per verificare che tutto funzioni è **test_python_qgis.py** che dovrebbe creare uno script di log con specificato l'utente che viene usato e l'ambiente (test o esercizio)
+
+```
+ C:\OSGeo4W64\apps\Python37\python.exe .\test_python_qgis.py
+```
+
+
+Complessivamente gli script sono i seguenti: 
+- **conversione_oracle_19.py** :
+- **viste.py** :
+
+Ci sono poi 2 script accessori usati per i test
+- **pulizia_oracle_19.py** :
+- **update_viste_test.py** : 
+
+Tutti gli script usano il file **credenziali.py** che va creato e di cui si è già detto e il file **impostazione_base.py** che va semplicemente modificato
+
+
+
+<!-- 
 3) nel file principale denominato **conversione_oracle19.py** controllare le seguenti righe:
 
 ```
@@ -150,4 +205,4 @@ print('test')
 cx_Oracle.init_oracle_client()
 ```
 
-4) per le fasi di debug abbiamo anche creato un file denominato **pulizia_oracle19.py** che riporta tutto allo stato iniziale
+4) per le fasi di debug abbiamo anche creato un file denominato **pulizia_oracle19.py** che riporta tutto allo stato iniziale -->
