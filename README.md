@@ -186,7 +186,7 @@ pwd='XXXXXXX'
 host='XXXXX'
 service='XXXXX.dominio.it'
 
-
+# usati solo dallo script update_viste_test.py
 host_produzione='XXXXX'
 service_produzione='XXXXX.dominio.it'
 
@@ -197,6 +197,15 @@ service_produzione='XXXXX.dominio.it'
 ```
 cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_9")
 ```
+
+controllare (e se necessario cambiare) la riga in cui si specifica il percorso radice di QGIS
+
+```
+#cartella dove è installato QGIS
+qgis_path="C:\OSGeo4W64"
+```
+
+
 
 ### Operazioni da fare ogni volta e per lanciare i singoli script
 4) aprire la **powershell** di windows
