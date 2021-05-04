@@ -186,6 +186,10 @@ pwd='XXXXXXX'
 host='XXXXX'
 service='XXXXX.dominio.it'
 
+
+host_produzione='XXXXX'
+service_produzione='XXXXX.dominio.it'
+
 ```
 
 3) aprire il file **impostazioni_base.py** e modificare la seguente riga specificando il percorso e la versione (es. instantclient_**19_9** ) del client oracle precedentemente scaricato
