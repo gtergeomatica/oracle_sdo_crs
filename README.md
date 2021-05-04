@@ -104,7 +104,6 @@ ERROR 1: ORA-04043: object "NOME_TABELLA_ORACLE" does not exist
 
 
 # Script python
------------------------------------------------------------------------
 
 ## Introduzione
 
@@ -116,9 +115,17 @@ Complessivamente gli script sono i seguenti:
 
 ![wp](/img/schema_tabelle.png)
 
+
+-----------------------------------------------------------------------
+
+
 - **viste.py** : gestisce la conversione delle viste
 
 ![wp](/img/schema_viste.png)
+
+
+-----------------------------------------------------------------------
+
 
 Ci sono poi 2 script accessori usati per i test
 - **pulizia_oracle_19.py** : ripristina nomi tabelle e metadati a quelli originali attraverso una ricerca delle tabelle con suffisso **CSG** (*Converted by Script Gter*)
@@ -161,7 +168,7 @@ A quel punto lo script dovrebbe funzionare direttamente dalla console python di 
 ## Lanciare gli scritp  
 
 
-### Al primo avvio o ad ogni aggiornamento
+### Operazioni da fare la prima volta o in caso di aggiornamenti
 1) scaricare la presente cartella con il tasto in alto a destra 
 
 ![wp](/img/download.PNG)
@@ -187,7 +194,7 @@ service='XXXXX.dominio.it'
 cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_19_9")
 ```
 
-### Ogni volta
+### Operazioni da fare ogni volta e per lanciare i singoli script
 4) aprire la **powershell** di windows
 
 ![wp](/img/powershell0.PNG)
@@ -209,6 +216,16 @@ Quello di test per verificare che tutto funzioni è **test_python_qgis.py** che 
 ```
  C:\OSGeo4W64\apps\Python37\python.exe .\test_python_qgis.py
 ```
+
+### Gestione dei log:
+I log vengono salvati nella cartella log:
+
+- YYYYMMDDHHmm_UTENTE_nomescript.py il livello di log è impostato su DEBUG che è il massimo (ossia stampo tutto) è possibile ridurre (o semplificare il log) usando i seguenti livelli
+
+- **DEBUG** stampa tutto (es. script SQL lanciati dagli script)
+- **INFO** stampa le informazioni sugli step in cui si trova lo script
+- **WARNING** stampa solo warning ed errori
+- **ERROR** stampa solo gli errori
 
 
 
